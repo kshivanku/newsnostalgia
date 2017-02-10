@@ -5,16 +5,16 @@ var config = require('./config.js');
 
 var startingYear = 1852;
 var currentYear = 2017;
-var newDataPeriod = 1000 * 60 * 60 * 6; //6 hours
-var newTweetPeriod = 1000 * 60 * 15 //15 mins
+var newDataPeriod = 1000 * 60 * 60 ; //1 hour
+var newTweetPeriod = 1000 * 60 * 5 //5 mins
 
 var twitter = TwitterAPI({
   consumerKey: config.cKey,
   consumerSecret: config.cSecret
 });
 
-//QUERY GUARDIAN AND NYT FOR NEW ARTICLES, ONCE EVERY SIX HOURS
-// setInterval(getnewdata, newDataPeriod);
+//QUERY GUARDIAN AND NYT FOR NEW ARTICLES
+setInterval(getnewdata, newDataPeriod);
 // getnewdata();
 
 function getnewdata(){
@@ -55,9 +55,8 @@ function getDataFromGuardian(){
   })
 }
 
-//TWEET, ONCE EVERY 15 MINS
-
-// setInterval(tweetNow, newTweetPeriod);
+//REGULAR TWEETING
+setInterval(tweetNow, newTweetPeriod);
 // tweetNow();
 function tweetNow(){
   selectPublication("Regular_Tweeting_No_User_Action");
