@@ -136,7 +136,77 @@ function onData(error, streamEvent){
       selectPublication(streamEvent.source.screen_name);
     }
     else if(streamEvent.hasOwnProperty("text") && streamEvent.user.screen_name!= "newsnostalgia"){
-      selectPublication(streamEvent.user.screen_name);
+      var regex = /\d{2}[./-]\d{4}/;
+      var userDate = streamEvent.text.match(regex);
+      if(userDate != null){
+        if(userDate[0][0] != 0){
+          var month = userDate[0][0] + userDate[0][1];
+        }
+        else{
+          var month = userDate[0][1];
+        }
+        var year = userDate[0][3] + userDate[0][4] + userDate[0][5] + userDate[0][6];
+        console.log(month + "," + year);
+        if (Number(month) <= 12 && Number(month) >=1 && Number(year)>= 1852 && Number(year) <= 2016){
+          console.log("approved");
+          specialTweet(month, year, streamEvent.user.screen_name);
+        }
+        else{
+          console.log("not approved");
+          selectPublication(streamEvent.user.screen_name);
+        }
+      }
+      else{
+        console.log("no proper date found");
+        selectPublication(streamEvent.user.screen_name);
+      }
     }
   }
+}
+
+function specialTweet(month, year, user_name){
+  var toss = Math.round(1 + Math.random());
+  if(toss == 1){
+    specialTweetNYT(month,year,user_name);
+  }
+  else{
+    specialTweetGuardian(month,year,user_name);
+  }
+}
+
+function specialTweetNYT(month, year,user_name){
+  console.log("In NYT");
+  var url = "https://api.nytimes.com/svc/archive/v1/" + year + "/" + month + ".json";
+  request.get({
+    url: url,
+    qs: {
+      'api-key': config.nytAPIkey
+    },
+  }, function(err, response, result) {
+    result = JSON.parse(result);
+    var article_array = result.response.docs;
+    var article_index = Math.floor(Math.random()*article_array.length);
+    var heading = article_array[article_index].headline.main;
+    var pubdate = article_array[article_index].pub_date.split("T")[0];
+    var weblink = article_array[article_index].web_url;
+    tweetIt("NYT", heading, pubdate, weblink, user_name);
+  })
+}
+
+function specialTweetGuardian(month, year,user_name){
+  console.log("In Guardian");
+  var date = Math.floor(1 + Math.random()*27);
+  var page_size = 200;
+  var url = "http://content.guardianapis.com/search?from-date=" + year + "-" + month + "-" + date + "&order-by=oldest&page-size=200&api-key=" + config.guardianAPIkey;
+  request.get({
+    url: url
+  }, function(err, response, result) {
+    result = JSON.parse(result);
+    var article_array = result.response.results;
+    var article_index = 0;
+    var heading = article_array[article_index].webTitle;
+    var pubdate = article_array[article_index].webPublicationDate.split("T")[0];
+    var weblink = article_array[article_index].webUrl;
+    tweetIt("Guardian", heading, pubdate, weblink, user_name);
+  })
 }
