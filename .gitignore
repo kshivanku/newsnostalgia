@@ -1,2 +1,5 @@
 config.js
 node_modules
+follow_sample.json
+tweeted_sample.json
+incoming_data.json

@@ -14,7 +14,7 @@ var twitter = TwitterAPI({
 });
 
 //QUERY GUARDIAN AND NYT FOR NEW ARTICLES, ONCE EVERY SIX HOURS
-setInterval(getnewdata, newDataPeriod);
+// setInterval(getnewdata, newDataPeriod);
 // getnewdata();
 
 function getnewdata(){
@@ -57,55 +57,59 @@ function getDataFromGuardian(){
 
 //TWEET, ONCE EVERY 15 MINS
 
-setInterval(tweetNow, newTweetPeriod);
+// setInterval(tweetNow, newTweetPeriod);
 // tweetNow();
 function tweetNow(){
-  selectPublication();
+  selectPublication("Regular_Tweeting_No_User_Action");
 }
 
-function selectPublication(){
+function selectPublication(user_name){
   var toss = Math.round(1 + Math.random());
   if(toss == 1){
-    tweetNYT();
+    tweetNYT(user_name);
   }
   else{
-    tweetGD();
+    tweetGD(user_name);
   }
 }
 
-function tweetNYT(){
+function tweetNYT(user_name){
   var NYTdata = JSON.parse(fs.readFileSync("nytdata.json"));
   var article_array = NYTdata.response.docs;
   var article_index = Math.floor(Math.random()*article_array.length);
   var heading = article_array[article_index].headline.main;
   var pubdate = article_array[article_index].pub_date.split("T")[0];
   var weblink = article_array[article_index].web_url;
-  tweetIt("NYT", heading, pubdate, weblink);
+  tweetIt("NYT", heading, pubdate, weblink, user_name);
 }
 
-function tweetGD(){
+function tweetGD(user_name){
   var GDdata = JSON.parse(fs.readFileSync("guardiandata.json"));
   var article_array = GDdata.response.results;
   var article_index = Math.floor(Math.random()*article_array.length);
   var heading = article_array[article_index].webTitle;
   var pubdate = article_array[article_index].webPublicationDate.split("T")[0];
   var weblink = article_array[article_index].webUrl;
-  tweetIt("Guardian", heading, pubdate, weblink);
+  tweetIt("Guardian", heading, pubdate, weblink, user_name);
 }
 
-function tweetIt(pub, heading, pubdate, weblink){
-  if(pub == "Guardian"){
+function tweetIt(pub, heading, pubdate, weblink, user_name){
+  if (user_name == "Regular_Tweeting_No_User_Action"){
+    if(pub == "Guardian"){
       var status = pub + ", " + pubdate + ":\n" + weblink;
-  }
-  else {
-    var status = pub + ", " + pubdate + ":\n" + heading + " " + weblink;
-  }
-
-  if(status.length > 140){
-    status = pub + ", " + pubdate + ":\n" + heading;
-    while(status.length > 140) {
-      status = status.substring(0, status.length-1);
     }
+    else {
+      var status = pub + ", " + pubdate + ":\n" + heading + " " + weblink;
+    }
+    if(status.length > 140){
+      status = pub + ", " + pubdate + ":\n" + heading;
+      while(status.length > 140) {
+        status = status.substring(0, status.length-1);
+      }
+    }
+  }
+  else{
+    status = "Here's a special article for @" + user_name + " from " + pubdate + "\n" + weblink;
   }
   twitter.statuses("update",
     {"status": status},
@@ -117,4 +121,23 @@ function tweetIt(pub, heading, pubdate, weblink){
       }
     }
   );
+}
+
+//STREAM FUNCTIONS
+twitter.getStream("user", {}, config.accessToken, config.tokenSecret, onData);
+
+function onData(error, streamEvent){
+  if(Object.keys(streamEvent).length == 0){
+    return;
+  }
+  else{
+    var incoming_data = JSON.stringify(streamEvent, null, 2);
+    fs.writeFileSync("incoming_data.json", incoming_data);
+    if(streamEvent.hasOwnProperty("event") && streamEvent.event == "follow"){
+      selectPublication(streamEvent.source.screen_name);
+    }
+    else if(streamEvent.hasOwnProperty("text") && streamEvent.user.screen_name!= "newsnostalgia"){
+      selectPublication(streamEvent.user.screen_name);
+    }
+  }
 }
